@@ -1,41 +1,56 @@
-require_relative "decompressor"
 require_relative "compressor"
+require_relative "decompressor"
 
 class Archivator  
-  
-  def initialize
-    @letters = []
-    @file = ARGV[0]
+  def initialize    
+    @index_input_file  = 1
+    @index_output_file = 2
   end
 
-  def text_archives_or_unzip
-    select_archive_or_unzip
-    break_up_the_text_with_the_letters
+  def compress_or_decompress_text
+    choose_compress_or_decompress
+    get_the_text_from_a_file
+    convert_text
 
-    output_to_file
+    write_the_output_file
   end
   
   private
   
-  attr_reader :letters, :file
+  attr_reader :text, :index_input_file, :index_output_file, :compressed_or_decompressed_text
 
-  def select_archive_or_unzip    
-    @file = ARGV[1] if ARGV[0] == "-u"         
-  end
-  
-  def break_up_the_text_with_the_letters
-    File.open(file) do |review_file|
-      @letters = review_file.read.chars        
+  def choose_compress_or_decompress
+    if ARGV[0] != "-u"
+      @index_input_file = 0
+      @index_output_file = 1
     end
   end
   
-  def output_to_file
-    if ARGV[0] == "-u"
-      File.open(ARGV[2], "w") {|file| file.write DeCompressor.new.shapes_from_archive_file(letters)}
-    else 
-      File.open(ARGV[1], "w") {|file| file.write Compressor.new.creates_archive(letters)}
-    end
+  def get_the_text_from_a_file
+    @text = File.open(ARGV[index_input_file]) { |input_file| input_file.read }
+  end
+  
+  def compressor
+    @compressor ||= Compressor.new(text)
+  end
+  
+  def decompressor
+    @decompressor ||= Decompressor.new(text)
+  end
+
+  def convert_text
+    @compressed_or_decompressed_text =
+      if ARGV[0] != "-u"
+        @compressed_or_decompressed_text = compressor.convert_the_characters_in_the_compressed_text
+      else
+        @compressed_or_decompressed_text = decompressor.convert_compressed_text_in_uncompressed
+      end
+  end
+  
+  def write_the_output_file
+    File.open(ARGV[index_output_file], "w") { |output_file| output_file.write compressed_or_decompressed_text }
   end
 end
 
-Archivator.new.text_archives_or_unzip
+archivator = Archivator.new
+archivator.compress_or_decompress_text
